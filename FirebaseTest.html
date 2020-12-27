@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="description" content="Explore and build in an asset-based digital world.">
+    <meta name="author" content="Dubby the Goldfish">
+    <title>BitWorld</title>
+    <style>
+    	* { padding: 0; margin: 0; }
+    	canvas { background: #eee; display: block; margin: 0 auto; }
+    </style>
+</head>
+<body>
+
+<canvas id="canvas" width="1920" height="1080"></canvas>
+
+<script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-firestore.js"></script>
+<!-- TODO: Add SDKs for Firebase products that you want to use
+     https://firebase.google.com/docs/web/setup#available-libraries -->
+<script src="https://www.gstatic.com/firebasejs/8.2.1/firebase-analytics.js"></script>
+
+<div id='my-money-button'></div>
+
+<script>
+
+/*
+// Creating a random name server and get proxy communication method instance
+let proxy = new HttpRelay(new URL('https://demo.httprelay.io')).proxy()
+// Registering a handler for the route
+proxy.routes.addGet('/hello', 'hello', () => {
+	// This code will be executed in your browser
+	return `Hello from your browser: ${navigator.appVersion}!`
+})
+// Starting server
+proxy.start()
+*/
+
+
+let canvas = document.getElementById('canvas');
+let ctx = canvas.getContext('2d');
+let defaultAlpha = ctx.globalAlpha;
+let isMobile = (/Mobile/i.test(navigator.userAgent));
+let lcs = [];
+let rcs = [];
+let sid = "44444444";
+let suid = "11111111";
+let startC = true;
+let startS = true;
+let Offers = new Map();
+let Answers = new Map();
+let isListening = new Map();
+let cursor = { x: 0, y: 0 };
+let clickStart = 0;
+let clickEnd = 0;
+let attempts = 0;
+let attempts2 = 0;
+let ices = ['stun:stun.l.google.com:19302', 'stun:stun2.l.google.com:19302',
+        'stun:stun3.l.google.com:19302', 'stun:stun4.l.google.com:19302',
+        'stun:global.stun.twilio.com:3478?transport=udp'];
+let colIceS = 0;
+let colIceC = 0;
+
+function FBini() {
+    // Your web app's Firebase configuration
+    // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+    let firebaseConfig = {
+        apiKey: "AIzaSyDU3seVctnZhCkgG2MpSTYVtIQYnFAxO3g",
+        authDomain: "bitworld-a1196.firebaseapp.com",
+        projectId: "bitworld-a1196",
+        storageBucket: "bitworld-a1196.appspot.com",
+        messagingSenderId: "440574976458",
+        appId: "1:440574976458:web:2bd61c48882aac57472f33",
+        measurementId: "G-PC24PHRB0H"
+    };
+    // Initialize Firebase
+    firebase.initializeApp(firebaseConfig);
+    firebase.analytics();
+    globalThis.FBdb = firebase.firestore();
+
+    /*
+    rules_version = '2';
+    service cloud.firestore {
+    match /databases/{database}/documents {
+        match /{document=**} {
+            allow read, write: if
+                request.time < timestamp.date(2021, 1, 22);
+            }
+        }
+    }
+    */
+}
+
+FBini();
+
+if (isMobile) {
+    let el = document.getElementsByTagName("canvas")[0];
+    el.addEventListener("touchstart", touchStart);
+    el.addEventListener("touchmove", touchMoved);
+    el.addEventListener("touchend", touchEnd);
+    //el.addEventListener("touchcancel", handleCancel);
+}
+else {
+    window.onload = init;
+    function init() {
+        if (window.Event) {
+            document.captureEvents(Event.MOUSEMOVE); }
+        document.onmousemove = getCursorXY; }
+    document.addEventListener("mousedown", mouseDownHandler, false);
+    document.addEventListener("mouseup", mouseUpHandler, false);
+}
+
+function touchStart(e) {
+    getCursorXY(e, e.touches[0].clientX, e.touches[0].clientY);
+    mouseDownHandler(e);
+    e.preventDefault(); }
+
+    
+function touchMoved(e) {
+    getCursorXY(e, e.touches[0].clientX, e.touches[0].clientY); }
+
+function touchEnd(e) {
+    mouseUpHandler(e);
+    e.preventDefault(); }
+
+function getCursorXY(e, x = e.clientX, y = e.clientY) {
+    let rect = canvas.getBoundingClientRect();
+    cursor.x = (x - rect.left) / (rect.right - rect.left) * canvas.width;
+    cursor.y = (y - rect.top) / (rect.bottom - rect.top) * canvas.height; }
+
+function mouseDownHandler(e) {
+    clickEnd = 0;
+    clickStart = [[cursor.x, cursor.y], Date.now()]; }
+
+ 
+function mouseUpHandler(e) {
+    if (clickStart) {
+        clickEnd = [[cursor.x, cursor.y], Date.now() - clickStart[1]];
+        clickStart = 0; }
+    console.log(clickEnd); }
+
+function button(x, y, w, h, f, text = false, c = contains(x, y, w, h, cursor.x, cursor.y)) {
+    drawRectangle(x, y, w, h, c);
+    if (text) { drawText(text, x+w/2-text.length/2*h/2*19/32, y+h*7/10, ''+h/2+'px Lucida Console'); }
+    if (clickEnd && c) { clickEnd = 0; f(); }
+}
+
+function contains(x, y, w, h, cX, cY) {
+    return ((x <= cX && cX <= x + w && y <= cY && cY <= y + h) ? true : false); }
+
+      
+function drawRectangle(x, y, w, h, c = false, fill = true, stroke = true,
+        fillColor = 'rgba(150,150,150,1)', strokeColor = (c) ? 'white':'rgba(69,69,69,1)', strokeWidth = '3') {
+    ctx.beginPath();
+    ctx.rect(x, y, w, h);
+    if (fill) { 
+        ctx.fillStyle = fillColor; 
+        ctx.fill();
+    if (stroke) { 
+        ctx.strokeStyle = strokeColor;
+        ctx.lineWidth = strokeWidth;
+        ctx.stroke(); }}}
+   
+function drawText(text, x, y, font = '32px Lucida Console', color = 'black', 
+        stroke = false, strokeColor = 'white', strokeWidth = 4, canvas = ctx) {
+    canvas.font = font;
+    if (stroke) {
+        canvas.strokeStyle = strokeColor;
+        canvas.lineWidth = strokeWidth;
+        canvas.strokeText(text, x, y); }
+    canvas.fillStyle = color;
+    canvas.fillText(text, x, y); }
+
+/*
+function drawTextBox(text, x = fieldX / 2 * 32 - 256, y = fieldY * 32 - 288, width = 512, height = 256, 
+    textSize = 32, autoHeight = false, onClick = ()=>{}) {
+    let wrap = wrapText(text, Math.ceil((width - (2 * textSize)) / (textSize * 19/32)));
+    if (autoHeight) {
+      height = height + (tileScale * Math.ceil((wrap.length * textSize) / 32)); }
+    drawMenu(x, y, width, height, onClick);
+    drawWrappedText(wrap, x, y, textSize + "px Lucida Console", "White", true);
+}
+*/
+
+/*
+// 32px Lucida Console has width of ~19
+function drawWrappedText(text, x, y, font = "32px Lucida Console", color = "black", 
+    stroke = false, strokeColor = "black", strokeWidth = 4, canvas = ctx,
+    size = Number(font.slice(0, 2)), iX = 0, iY = size) {
+x += size + Math.floor(size * 1/16);
+y += size + Math.floor(size * 7/8);
+canvas.font = font;
+for (i = 0; i < text.length; i++) {
+    if (stroke) {
+    canvas.strokeStyle = strokeColor;
+    canvas.lineWidth = strokeWidth;
+    canvas.strokeText(text[i], x + (i * iX), y + (i * iY)); }
+    canvas.fillStyle = color;
+    canvas.fillText(text[i], x + (i * iX), y + (i * iY)); }
+}
+*/
+
+function writeClip(t) {
+    console.log("writecb: " + t); navigator.clipboard.writeText(t); }
+
+function readClip(func = ()=>{}, t = "") {
+    navigator.clipboard.readText().then(text => { console.log("readcb: " + text); func(JSON.parse(text)); }); }
+
+// build database path
+function bdb(c, d, db = FBdb) {
+    for (i = 0; i < c.length; i++) { 
+        db = db.collections(c[0]); if (i < d.length) { 
+            db = db.docs(d[0]); }} return db; }
+
+
+
+function addListenerC() {
+    FBdb.collection('Users/'+suid+'/RTC/'+sid+'/Answers')
+        .onSnapshot(function(qs) {
+            qs.forEach(function(doc) {
+                d = doc.data();
+                k = Object.keys(d);
+                a = d[k[k.length-1]];
+                console.log(a);
+                if (a) { setRD(a); }
+            });
+        });
+}
+
+function addListenerS() {
+    FBdb.collection('Users/'+sid+'/RTC/')
+        .onSnapshot(function(qs) {
+            console.log("new doc")
+            qs.forEach(function(doc) {
+                d = doc.data();
+                console.log(d);
+                rc = isListening.get(d.uid);
+                if (rc) {
+
+                }
+                else {
+                    rc = rcs[rcs.length - 1];
+                    rc.uid = d.uid;
+                    rc.time = d.time;
+                    isListening.set(d.uid, rc);
+                    addListener(rc);
+                    createServer();
+                }
+            });
+        });
+}
+
+function addListener(rc) {
+    FBdb.collection('Users/'+sid+'/RTC/'+rc.uid+'/Offers')
+        .onSnapshot(function(qs) {
+            qs.forEach(function(doc) {
+                d = doc.data();
+                k = Object.keys(d);
+                o = d[k[k.length-1]];
+                console.log(o);
+                if (o) { setD(rc, o); }
+            });
+        });
+}
+
+//{ iceServers: [{url: 'stun:stun.1.google.com:19302'}] }
+
+// Client Code
+function createClient(id = suid){
+    addListenerC();
+    FBdb.doc('Users/'+sid+'/RTC/'+id).set({uid : id, time : Date.now()});
+    globalThis.lc = new RTCPeerConnection({ iceServers: [{urls: ['stun:stun.l.google.com:19302', 'stun:stun2.l.google.com:19302',
+        'stun:stun3.l.google.com:19302', 'stun:stun4.l.google.com:19302']},
+        {urls: ['stun:global.stun.twilio.com:3478?transport=udp']}] });
+    lc.dc = lc.createDataChannel("channel");
+    lc.ices = [];
+    lc.uid = id;
+    lc.dc.onmessage = e => console.log("Just got a message " + e.data);
+    lc.dc.onopen = e => console.log("Connection opened!");
+    lc.onicecandidate = e => { ld = JSON.stringify(lc.localDescription); ld = JSON.parse(ld); ld.uid = lc.uid; ld.time = Date.now();
+        lc.ices.push(ld); colIceC++;
+        /*writeClip(ld);*/ console.log("New Ice Candidate! reprinting SDP" + JSON.stringify(ld)); }
+    lc.onicegatheringstatechange = e => { igs = lc.iceGatheringState; console.log(igs); if (igs == 'complete') { FBadd(lc.ices, ['Users', 'RTC', 'Offers'], [sid, lc.uid, '0']) }};
+    lc.oniceconnectionstatechange = e => console.log(lc.iceConnectionState);
+    lc.createOffer().then(o => lc.setLocalDescription(o)).then(a=> console.log("set successfully!")); }
+//
+function setRD(answer) { 
+    if (answer.time <= Date.now() - 5000) {
+    }
+    else {
+        lc.setRemoteDescription(answer);
+    } 
+} 
+
+
+// Remote Client Code (Server)
+function createServer(c = rcs.length) {
+    rcs.push(new RTCPeerConnection({ iceServers: [{urls: ['stun:stun.l.google.com:19302', 'stun:stun2.l.google.com:19302',
+        'stun:stun3.l.google.com:19302', 'stun:stun4.l.google.com:19302']},
+        {urls: ['stun:global.stun.twilio.com:3478?transport=udp']}] }));
+    rc = rcs[c];
+    rc.ices = [];
+    rc.onicecandidate = e => { rc = e.target; rd = JSON.stringify(rc.localDescription); rd = JSON.parse(rd); rd.uid = sid; rd.time = Date.now();
+        rc.ices.push(rd); colIceS++;
+        /*writeClip(rd);*/ console.log("New Ice Candidate! reprinting SDP" + JSON.stringify(rd)); }
+    rc.onicegatheringstatechange = e => { rc = e.target; igs = rc.iceGatheringState; console.log(igs); if (igs == 'complete') { FBadd(rc.ices, ['Users', 'RTC', 'Answers'], [rc.uid, sid, '0']) } };
+    rc.oniceconnectionstatechange = e => { rc = e.target; console.log(rc.iceConnectionState); }
+    rc.ondatachannel = e => {
+        rc.dc = e.channel;
+        rc.dc.onmessage = e => console.log("new message from client! " + e.data);
+        rc.dc.onopen = e => console.log("Connection OPENED!!!!");
+    }
+    console.log(rcs);
+}
+//
+function setD(rc, offer) {
+    if (offer.time <= Date.now() - 5000) {
+        FBdb.doc('Users/'+sid+'/RTC/'+offer.uid).delete().then(function() {
+            console.log("Document successfully deleted! (00 Stale)");
+        }).catch(function(error) {
+            console.error("Error removing document: ", error);
+        });
+    }
+    else {
+        rc.setRemoteDescription(offer).then(a=> console.log("offer set!"));
+        rc.createAnswer().then(a => rc.setLocalDescription(a)).then(console.log("answer created"));
+    }
+}
+
+function FBadd(o, c = ["Users"], d = [uid], arr = FBdb) {
+    for (let i = 0; i < c.length; i++) { 
+        arr = arr.collection(c[i]);
+        if (i < d.length) { arr = arr.doc(d[i]); }}
+    arr = arr.set({...o})
+        .then(function(docRef) { console.log("Document written with ID: ", d[d.length-1], {...o}); })
+        .catch(function(error) { console.error("Error adding document: ", error); }); }
+
+function FBdel(d, c = "Users", db = FBdb) {
+    db.collection(c).doc(d).delete().then(function() {
+        console.log("Document successfully deleted!");
+    }).catch(function(error) {
+        console.error("Error removing document: ", error);
+    });
+}
+
+function FBget(type, c = ["Users"], d = [sid], db = FBdb) {
+    if (c.length > 1) {
+        arr = 'db';
+        for (let i = 0; i < c.length; i++) {
+            arr += '.collection(c['+i+'])';
+            if (i < d.length) {
+                arr += '.doc(d['+i+'])';
+            }
+        }
+        arr += '.get().then((querySnapshot) => { querySnapshot.forEach((doc) => { d = JSON.stringify(doc.data()); d = JSON.parse(d); id = d.uid; delete d.uid; s = d.sdp; delete d.sdp; d.sdp = s; '+type+'.set(id, JSON.stringify(d)); }); return '+type+'.get(id)});'
+        console.log(arr);
+        return eval(arr);
+    }
+    else {
+        db.collection(c[0]).doc(d[0]).get().then((querySnapshot) => {
+            querySnapshot.forEach((doc) => {
+                console.log(JSON.stringify(doc.data()));
+            });
+        });
+    }
+}
+
+function draw() {
+    button(100, 100, 200, 100, ()=>{ addListenerC(); createClient(); }, "Client");
+    button(100, 300, 200, 100, ()=>{ addListenerS(); createServer(); }, "Server");
+    button(400, 100, 200, 100, ()=>{ suid = '1'; createClient(); }, "Client1");
+    button(400, 300, 200, 100, ()=>{ suid = '2'; createClient(); }, "Client2");
+    button(700, 100, 200, 100, ()=>{ suid = '3'; createClient(); }, "Client3");
+    button(700, 300, 200, 100, ()=>{ suid = '4'; createClient(); }, "Client4");
+    clickEnd = 0;
+}
+
+//FBadd({}, ['Users'], [uid]);
+setInterval(draw, 20);
+
+</script>
+
+</body>
+</html>
